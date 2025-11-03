@@ -1,35 +1,33 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { investmentsApi } from "@/services/api";
 
 export const InvestmentsView = () => {
-  const investments = [
-    {
-      id: 1,
-      name: "Tech Stock Portfolio",
-      invested: 50000,
-      current: 62000,
-      change: 24.0,
-    },
-    {
-      id: 2,
-      name: "Index Funds",
-      invested: 30000,
-      current: 33500,
-      change: 11.7,
-    },
-    {
-      id: 3,
-      name: "Crypto Holdings",
-      invested: 15000,
-      current: 12500,
-      change: -16.7,
-    },
-  ];
+  const { data: investments = [], isLoading } = useQuery({
+    queryKey: ["investments"],
+    queryFn: investmentsApi.getAll,
+  });
 
-  const totalInvested = investments.reduce((sum, inv) => sum + inv.invested, 0);
-  const totalCurrent = investments.reduce((sum, inv) => sum + inv.current, 0);
-  const totalReturn = ((totalCurrent - totalInvested) / totalInvested) * 100;
+  const { data: totalInvested = 0 } = useQuery({
+    queryKey: ["totalInvested"],
+    queryFn: investmentsApi.getTotalInvested,
+  });
+
+  const { data: totalCurrent = 0 } = useQuery({
+    queryKey: ["totalCurrent"],
+    queryFn: investmentsApi.getTotalCurrent,
+  });
+
+  const { data: totalRoi = 0 } = useQuery({
+    queryKey: ["totalRoi"],
+    queryFn: investmentsApi.getTotalRoi,
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading investments...</div>;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -67,9 +65,9 @@ export const InvestmentsView = () => {
               Total Return
             </p>
             <p className="text-3xl font-bold text-success-foreground flex items-center gap-2">
-              {totalReturn > 0 ? "+" : ""}
-              {totalReturn.toFixed(1)}%
-              {totalReturn > 0 ? (
+              {totalRoi > 0 ? "+" : ""}
+              {totalRoi.toFixed(1)}%
+              {totalRoi > 0 ? (
                 <TrendingUp className="w-6 h-6" />
               ) : (
                 <TrendingDown className="w-6 h-6" />
@@ -81,26 +79,29 @@ export const InvestmentsView = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {investments.map((investment) => {
-          const profit = investment.current - investment.invested;
-          const isPositive = investment.change > 0;
+          const profit = investment.currentValue - investment.amountInvested;
+          const isPositive = investment.roi > 0;
 
           return (
             <Card
               key={investment.id}
               className="p-6 gradient-card border-0 shadow-lg hover:shadow-xl transition-base"
             >
-              <h3 className="font-semibold text-lg mb-4">{investment.name}</h3>
+              <h3 className="font-semibold text-lg mb-1">{investment.ticker}</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                {investment.category} • {investment.platform}
+              </p>
               <div className="space-y-3">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Invested</p>
                   <p className="text-xl font-bold">
-                    {investment.invested.toLocaleString()} SEK
+                    {investment.amountInvested.toLocaleString()} SEK
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Current Value</p>
                   <p className="text-xl font-bold">
-                    {investment.current.toLocaleString()} SEK
+                    {investment.currentValue.toLocaleString()} SEK
                   </p>
                 </div>
                 <div className="pt-3 border-t">
@@ -121,7 +122,7 @@ export const InvestmentsView = () => {
                         }`}
                       >
                         {isPositive ? "+" : ""}
-                        {investment.change.toFixed(1)}%
+                        {investment.roi.toFixed(1)}%
                       </p>
                     </div>
                   </div>

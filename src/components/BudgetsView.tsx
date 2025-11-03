@@ -2,38 +2,29 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Plus, AlertTriangle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { budgetsApi } from "@/services/api";
+
+const categoryIcons: Record<string, string> = {
+  Food: "🍽️",
+  Housing: "🏠",
+  Transportation: "🚗",
+  Entertainment: "🎬",
+  Health: "🏥",
+  Shopping: "🛍️",
+  Bills: "💡",
+  Other: "📦",
+};
 
 export const BudgetsView = () => {
-  const budgets = [
-    {
-      id: 1,
-      category: "Housing",
-      limit: 12000,
-      spent: 12000,
-      icon: "🏠",
-    },
-    {
-      id: 2,
-      category: "Food & Dining",
-      limit: 5000,
-      spent: 3500,
-      icon: "🍽️",
-    },
-    {
-      id: 3,
-      category: "Transportation",
-      limit: 3000,
-      spent: 2100,
-      icon: "🚗",
-    },
-    {
-      id: 4,
-      category: "Entertainment",
-      limit: 2000,
-      spent: 2200,
-      icon: "🎬",
-    },
-  ];
+  const { data: budgets = [], isLoading } = useQuery({
+    queryKey: ["budgets"],
+    queryFn: budgetsApi.getAll,
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading budgets...</div>;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -50,7 +41,7 @@ export const BudgetsView = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {budgets.map((budget) => {
-          const percentage = (budget.spent / budget.limit) * 100;
+          const percentage = (budget.spentAmount / budget.limitAmount) * 100;
           const isOverBudget = percentage > 100;
           const isWarning = percentage > 80 && !isOverBudget;
 
@@ -63,11 +54,11 @@ export const BudgetsView = () => {
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="text-3xl">{budget.icon}</div>
+                  <div className="text-3xl">{categoryIcons[budget.category] || "📦"}</div>
                   <div>
                     <h3 className="font-semibold text-lg">{budget.category}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {budget.spent.toLocaleString()} / {budget.limit.toLocaleString()} SEK
+                      {budget.spentAmount.toLocaleString()} / {budget.limitAmount.toLocaleString()} SEK
                     </p>
                   </div>
                 </div>
@@ -105,7 +96,7 @@ export const BudgetsView = () => {
                         : "text-success"
                     }`}
                   >
-                    {(budget.limit - budget.spent).toLocaleString()} SEK remaining
+                    {(budget.limitAmount - budget.spentAmount).toLocaleString()} SEK remaining
                   </span>
                 </div>
               </div>
@@ -114,32 +105,34 @@ export const BudgetsView = () => {
         })}
       </div>
 
-      <Card className="p-6 gradient-card border-0 shadow-lg">
-        <h3 className="font-semibold text-lg mb-4">Budget Summary</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Total Budget</p>
-            <p className="text-2xl font-bold">
-              {budgets.reduce((sum, b) => sum + b.limit, 0).toLocaleString()} SEK
-            </p>
+      {budgets.length > 0 && (
+        <Card className="p-6 gradient-card border-0 shadow-lg">
+          <h3 className="font-semibold text-lg mb-4">Budget Summary</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Total Budget</p>
+              <p className="text-2xl font-bold">
+                {budgets.reduce((sum, b) => sum + b.limitAmount, 0).toLocaleString()} SEK
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Total Spent</p>
+              <p className="text-2xl font-bold text-destructive">
+                {budgets.reduce((sum, b) => sum + b.spentAmount, 0).toLocaleString()} SEK
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Remaining</p>
+              <p className="text-2xl font-bold text-success">
+                {budgets
+                  .reduce((sum, b) => sum + (b.limitAmount - b.spentAmount), 0)
+                  .toLocaleString()}{" "}
+                SEK
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Total Spent</p>
-            <p className="text-2xl font-bold text-destructive">
-              {budgets.reduce((sum, b) => sum + b.spent, 0).toLocaleString()} SEK
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Remaining</p>
-            <p className="text-2xl font-bold text-success">
-              {budgets
-                .reduce((sum, b) => sum + (b.limit - b.spent), 0)
-                .toLocaleString()}{" "}
-              SEK
-            </p>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
     </div>
   );
 };

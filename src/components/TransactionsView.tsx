@@ -5,42 +5,33 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, ArrowUpCircle, ArrowDownCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Transaction {
-  id: number;
-  description: string;
-  amount: number;
-  type: "income" | "expense";
-  category: string;
-  date: string;
-}
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { transactionsApi } from "@/services/api";
 
 export const TransactionsView = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: 1,
-      description: "Salary",
-      amount: 35000,
-      type: "income",
-      category: "Income",
-      date: "2025-11-01",
-    },
-    {
-      id: 2,
-      description: "Rent",
-      amount: 12000,
-      type: "expense",
-      category: "Housing",
-      date: "2025-11-02",
-    },
-  ]);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const queryClient = useQueryClient();
+
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ["transactions"],
+    queryFn: transactionsApi.getAll,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: transactionsApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["history"] });
+      toast.success("Transaction deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete transaction");
+    },
+  });
 
   const handleDelete = (id: number) => {
-    setTransactions(transactions.filter((t) => t.id !== id));
-    toast.success("Transaction deleted successfully");
+    deleteMutation.mutate(id);
   };
 
   const filteredTransactions = transactions.filter((t) => {
@@ -48,6 +39,10 @@ export const TransactionsView = () => {
     const matchesType = filterType === "all" || t.type === filterType;
     return matchesSearch && matchesType;
   });
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading transactions...</div>;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -79,8 +74,9 @@ export const TransactionsView = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="expense">Expenses</SelectItem>
+              <SelectItem value="INCOME">Income</SelectItem>
+              <SelectItem value="EXPENSE">Expense</SelectItem>
+              <SelectItem value="INVESTMENT">Investment</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -96,12 +92,12 @@ export const TransactionsView = () => {
               <div className="flex items-center gap-4">
                 <div
                   className={`p-3 rounded-xl ${
-                    transaction.type === "income"
+                    transaction.type === "INCOME"
                       ? "bg-success/10 text-success"
                       : "bg-destructive/10 text-destructive"
                   }`}
                 >
-                  {transaction.type === "income" ? (
+                  {transaction.type === "INCOME" ? (
                     <ArrowUpCircle className="w-5 h-5" />
                   ) : (
                     <ArrowDownCircle className="w-5 h-5" />
@@ -112,23 +108,24 @@ export const TransactionsView = () => {
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span>{transaction.category}</span>
                     <span>•</span>
-                    <span>{new Date(transaction.date).toLocaleDateString()}</span>
+                    <span>{new Date(transaction.date).toLocaleDateString('sv-SE')}</span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <p
                   className={`text-lg font-bold ${
-                    transaction.type === "income" ? "text-success" : "text-destructive"
+                    transaction.type === "INCOME" ? "text-success" : "text-destructive"
                   }`}
                 >
-                  {transaction.type === "income" ? "+" : "-"}
+                  {transaction.type === "INCOME" ? "+" : "-"}
                   {transaction.amount.toLocaleString()} SEK
                 </p>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => handleDelete(transaction.id)}
+                  disabled={deleteMutation.isPending}
                   className="hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 className="w-4 h-4" />
