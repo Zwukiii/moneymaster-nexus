@@ -1,12 +1,47 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { DashboardView } from "@/components/DashboardView";
+import { TransactionsView } from "@/components/TransactionsView";
+import { InvestmentsView } from "@/components/InvestmentsView";
+import { BudgetsView } from "@/components/BudgetsView";
+import { Navigation } from "@/components/Navigation";
+import { 
+  LayoutDashboard, 
+  ArrowLeftRight, 
+  TrendingUp, 
+  Wallet 
+} from "lucide-react";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("dashboard");
+
+  const tabs = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "transactions", label: "Transactions", icon: ArrowLeftRight },
+    { id: "investments", label: "Investments", icon: TrendingUp },
+    { id: "budgets", label: "Budgets", icon: Wallet },
+  ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <DashboardView />;
+      case "transactions":
+        return <TransactionsView />;
+      case "investments":
+        return <InvestmentsView />;
+      case "budgets":
+        return <BudgetsView />;
+      default:
+        return <DashboardView />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Navigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        {renderContent()}
+      </main>
     </div>
   );
 };
